@@ -10,7 +10,7 @@ intents.message_content = True
 
 class pinkMusic(commands.Bot):
     def __init__(self):
-        self._cogs = [p.stem for p in Path(".").glob("./cogs/*.py")]
+        self._cogs = ["music", "slash"]
         super().__init__(command_prefix=self.prefix, case_insensitive=True, intents=intents)
         
     def setup(self):
@@ -52,15 +52,15 @@ class pinkMusic(commands.Bot):
     async def prefix(self, bot, msg):
         return commands.when_mentioned_or("`")(bot, msg)
 
-    async def process_commands(self, msg):
-        ctx = await self.get_context(msg, cls=commands.Context)
+    # async def process_commands(self, msg):
+    #     ctx = await self.get_context(msg, cls=commands.Context)
 
-        if ctx.command is not None:
-            await self.invoke(ctx)
+    #     if ctx.command is not None:
+    #         await self.invoke(ctx)
 
-    async def on_message(self, msg):
-        if not msg.author.bot:
-            await self.process_commands(msg)
+    # async def on_message(self, msg):
+    #     if not msg.author.bot:
+    #         await self.process_commands(msg)
 
 bot = pinkMusic()
 bot.run()
