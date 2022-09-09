@@ -10,7 +10,7 @@ intents.message_content = True
 
 class pinkMusic(commands.Bot):
     def __init__(self):
-        self._cogs = ["music", "slash"]
+        self._cogs = ["music"]
         super().__init__(command_prefix=self.prefix, case_insensitive=True, intents=intents)
         
     def setup(self):

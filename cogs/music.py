@@ -1,5 +1,4 @@
 import wavelink, discord, asyncio, datetime, re
-from . import queue
 from .error import *
 from wavelink.ext import spotify
 from discord.ext import commands
@@ -9,7 +8,6 @@ class Music(commands.Cog, wavelink.Player):
     def __init__(self, bot):
         self.bot = bot
         self.player = None
-        # self.__queue = wavelink.Queue()
         bot.loop.create_task(self.start_nodes())
 
     def convert(self, sec):
@@ -27,12 +25,28 @@ class Music(commands.Cog, wavelink.Player):
     
     async def start_nodes(self):
         await self.bot.wait_until_ready()
-        await wavelink.NodePool.create_node(bot=self.bot,
-                                            host='lava.link',
-                                            port=80,
-                                            password='youshallnotpass',
-                                            identifier='pinkMusic',
-                                            region='asia',)
+        nodes = {
+            "node1": {
+                "bot": self.bot,
+                "host": "lava.link",
+                "port": 80,
+                "password": "youshallnotpass",
+                "identifier": "pinkMusic1",
+                "region": "asia",
+            },
+            "node2": {
+                "bot": self.bot,
+                "host": "node1.gglvxd.tk",
+                "port": 443,
+                "password": "free",
+                "identifier": "pinkMusic2",
+                "region": "asia",
+                "https": True,
+            },
+        }
+
+        for node in nodes.values():
+            await wavelink.NodePool.create_node(**node)
 
     @commands.Cog.listener()
     async def on_wavelink_node_ready(self, node: wavelink.Node):
@@ -54,9 +68,6 @@ class Music(commands.Cog, wavelink.Player):
 
     async def choose_track(self, ctx, query):
         tracks = await wavelink.YouTubeTrack.search(query=query)
-
-        for t in tracks:
-            print(t.id)
 
         def _check(r, u):
             return (
