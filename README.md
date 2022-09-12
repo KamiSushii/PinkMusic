@@ -1,0 +1,1 @@
+Rewrite of SushiBot legacy
