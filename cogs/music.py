@@ -16,6 +16,7 @@ class loopMode():
 loop = loopMode.NONE
 
 
+# a FUCKING cursed control button
 class Control(discord.ui.View):
     def __init__(self):
         super().__init__()
@@ -157,7 +158,7 @@ class Music(commands.Cog, wavelink.Player):
         elif progress <= 70: return '------●---'
         elif progress <= 80: return '-------●--'
         elif progress <= 90: return '--------●-'
-        elif progress <= 100: return '--------●'
+        else:                return '---------●'
 
     def _convert(self, sec):
         if sec < 60:
@@ -169,7 +170,7 @@ class Music(commands.Cog, wavelink.Player):
         random.shuffle(self.player.queue._queue)
 
 
-# Wavelink initiate
+# Initiate wavelink
     async def teardown(self):
         try:
             await self.player.destroy()
@@ -177,16 +178,18 @@ class Music(commands.Cog, wavelink.Player):
             pass
 
     async def connect(self, ctx):
-        if not ctx.voice_client:
-            self.player: wavelink.Player = await ctx.author.voice.channel.connect(cls=wavelink.Player)
-        else:
-            self.player: wavelink.Player = ctx.voice_client
+        try:
+            if not ctx.voice_client:
+                self.player: wavelink.Player = await ctx.author.voice.channel.connect(cls=wavelink.Player)
+            else:
+                self.player: wavelink.Player = ctx.voice_client
 
-        global player
-        player = self.player
+            global player
+            player = self.player
 
-        if not self.player.is_connected:
-            await self.player.connect(ctx)
+            if not self.player.is_connected:
+                await self.player.connect(ctx)
+        except: raise NoVoiceChannel
     
     async def start_nodes(self):
         await self.bot.wait_until_ready()
@@ -340,21 +343,27 @@ class Music(commands.Cog, wavelink.Player):
     async def play_command(self, ctx, *, query: str):
         await self.connect(ctx)
         query = query.strip("<>")
-        if re.match(YOUTUBEPL_REGEX, query):
-            await self.add_youtubepl(ctx, query)
-        
-        elif re.match(YOUTUBE_REGEX, query):
-            await self.add_youtube(ctx, query)
+        try:
+            if re.match(YOUTUBEPL_REGEX, query):
+                await self.add_youtubepl(ctx, query)
+            
+            elif re.match(YOUTUBE_REGEX, query):
+                await self.add_youtube(ctx, query)
 
-        else:
-            await self.choose_track(ctx, query)
+            else:
+                await self.choose_track(ctx, query)
+        except: raise InvalidURL
 
         if not self.player.is_playing() and not self.player.queue.is_empty:
             await self.start_playback()
 
     @play_command.error
     async def play_command_error(self, ctx, exc):
-        await ctx.send("error")
+        if isinstance(exc, NoVoiceChannel):
+            await ctx.send("User not connected to any accessible channel")
+            
+        if isinstance(exc, InvalidURL):
+            await ctx.send("Invalid URL")
 
     @commands.command(name='queue', aliases=['q'])
     async def queue_command(self, ctx):

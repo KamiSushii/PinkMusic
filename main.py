@@ -9,7 +9,7 @@ intents.message_content = True
 
 class pinkMusic(commands.Bot):
     def __init__(self):
-        self._cogs = ['music', 'slash']
+        self._cogs = ['slash', 'battleship', 'music']
         super().__init__(command_prefix=self.prefix, case_insensitive=True, intents=intents, debug_guilds=debug_guilds)
         
     def setup(self):
@@ -42,24 +42,14 @@ class pinkMusic(commands.Bot):
     async def on_ready(self):
         self.client_id = (await self.application_info()).id
 
-        game_name='with ur mom | 🎵.help'
-        activity_type=discord.ActivityType.playing
+        activity_name='Please support my work! https://trakteer.id/kamisushi'
+        activity_type=discord.ActivityType.custom
 
-        await self.change_presence(activity=discord.Activity(type=activity_type,name=game_name))
+        await self.change_presence(activity=discord.Activity(type=activity_type,name=activity_name))
         print(f"\n{self.user.name} is online.")
 
     async def prefix(self, bot, msg):
         return commands.when_mentioned_or("`")(bot, msg)
-
-    async def process_commands(self, msg):
-        ctx = await self.get_context(msg, cls=commands.Context)
-
-        if ctx.command is not None:
-            await self.invoke(ctx)
-
-    async def on_message(self, msg):
-        if not msg.author.bot:
-            await self.process_commands(msg)
 
 bot = pinkMusic()
 bot.run()

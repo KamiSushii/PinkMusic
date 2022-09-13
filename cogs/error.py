@@ -31,3 +31,7 @@ class NoPreviousTracks(commands.CommandError):
 
 class InvalidRepeatMode(commands.CommandError):
     pass
+
+
+class InvalidURL(commands.CommandError):
+    pass
