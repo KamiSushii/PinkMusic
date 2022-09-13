@@ -1,7 +1,6 @@
-from pathlib import Path
-from config import *
 import discord
 from discord.ext import commands
+from config import *
 
 intents = discord.Intents.default()
 intents.members = True
@@ -10,8 +9,8 @@ intents.message_content = True
 
 class pinkMusic(commands.Bot):
     def __init__(self):
-        self._cogs = ["music"]
-        super().__init__(command_prefix=self.prefix, case_insensitive=True, intents=intents)
+        self._cogs = ['music', 'slash']
+        super().__init__(command_prefix=self.prefix, case_insensitive=True, intents=intents, debug_guilds=debug_guilds)
         
     def setup(self):
         print("[*]Running setup...")
@@ -21,7 +20,7 @@ class pinkMusic(commands.Bot):
 
         for cog in self._cogs:
                 self.load_extension(f"cogs.{cog}")
-                print(f"   - Loaded {cog}.py.")
+                print(f"   - Loaded {cog} cog.")
 
         print("[v]Setup complete.")
 
@@ -52,15 +51,15 @@ class pinkMusic(commands.Bot):
     async def prefix(self, bot, msg):
         return commands.when_mentioned_or("`")(bot, msg)
 
-    # async def process_commands(self, msg):
-    #     ctx = await self.get_context(msg, cls=commands.Context)
+    async def process_commands(self, msg):
+        ctx = await self.get_context(msg, cls=commands.Context)
 
-    #     if ctx.command is not None:
-    #         await self.invoke(ctx)
+        if ctx.command is not None:
+            await self.invoke(ctx)
 
-    # async def on_message(self, msg):
-    #     if not msg.author.bot:
-    #         await self.process_commands(msg)
+    async def on_message(self, msg):
+        if not msg.author.bot:
+            await self.process_commands(msg)
 
 bot = pinkMusic()
 bot.run()

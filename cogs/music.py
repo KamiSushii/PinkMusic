@@ -1,19 +1,20 @@
-import wavelink, discord, asyncio, datetime, re
-from .error import *
+import asyncio, datetime, re, random
+import wavelink, discord
 from wavelink.ext import spotify
 from discord.ext import commands, pages
 from config import *
+from .error import *
 
 temp = None
+player = None
+
 
 class loopMode():
     NONE = ''
     ONE  = '| 🔂 '
     ALL  = '| 🔁 '
+loop = loopMode.NONE
 
-class shuffleMode():
-    NO  = ''
-    YES = '| 🔀 '
 
 class Control(discord.ui.View):
     def __init__(self):
@@ -92,43 +93,43 @@ class Control(discord.ui.View):
             if not await self._check(interaction):
                 return
 
-            if Music.loop == loopMode.NONE:
-                Music.loop = loopMode.ALL
+            global loop
+            if loop == loopMode.NONE:
+                loop = loopMode.ALL
                 await interaction.response.send_message('🔁 Queue loop enabled!',ephemeral=True, delete_after=10)
-            elif Music.loop == loopMode.ALL:
-                Music.loop = loopMode.ONE
+            elif loop == loopMode.ALL:
+                loop = loopMode.ONE
                 await interaction.response.send_message('🔂 Current track loop enabled!',ephemeral=True, delete_after=10)
             else:
-                Music.loop = loopMode.NONE
+                loop = loopMode.NONE
                 await interaction.response.send_message('❌ Loop disabled!',ephemeral=True, delete_after=10)
 
-            await Music.control_command(self.ctx)
+            global temp
+            await asyncio.sleep(3)
+            await Music.control_command(temp)
+
         except:
             self.timeout=None
             pass
 
     @discord.ui.button(label='', style=discord.ButtonStyle.primary,emoji="<:shuffle:1014645684764422224>")
-    async def shuffle(self, button: discord.ui.Button, interaction: discord.Interaction):
+    async def _shuffle(self, button: discord.ui.Button, interaction: discord.Interaction):
         try :
             self.timeout=None
-            global queues
-            global all_queues_info
 
             if not await self._check(interaction):
                 return
 
-            if Music.shuffle == loopMode.NONE:
-                Music.shuffle = loopMode.ALL
-                await interaction.response.send_message('🔁 Shuffle enabled!',ephemeral=True, delete_after=10)
-            else:
-                Music.shuffle = loopMode.NONE
-                await interaction.response.send_message('❌ Shuffle disabled!',ephemeral=True, delete_after=10)
+            random.shuffle(player.queue._queue)
+            await interaction.response.send_message('Queue shuffled.',ephemeral=True, delete_after=10)
 
-            if interaction.guild.id not in all_queues_info or len(all_queues_info[interaction.guild.id]) == 0:
-                return await interaction.response.send_message('❌ Your queue is empty!',ephemeral=True, delete_after=10)
         except:
             self.timeout=None
             pass
+
+
+
+
 
 class Music(commands.Cog, wavelink.Player):
     def __init__(self, bot):
@@ -138,35 +139,37 @@ class Music(commands.Cog, wavelink.Player):
         self.ctrl = None
         self.current_track = None
 
-        self.loop = loopMode.NONE
-        self.shuffle = shuffleMode.NO
-        self.temp = None
-
         bot.loop.create_task(self.start_nodes())
 
-    def __thumbnail(self, identifier):
+
+# Extras
+    def _thumbnail(self, identifier):
         return f"https://img.youtube.com/vi/{identifier}/0.jpg"
 
-    def progress(self, position, duration):
+    def _progress(self, position, duration):
         progress = position / duration * 100
-        if progress < 10:   return '●---------'
-        elif progress < 20: return '-●--------'
-        elif progress < 30: return '--●-------'
-        elif progress < 40: return '---●------'
-        elif progress < 50: return '----●-----'
-        elif progress < 60: return '-----●----'
-        elif progress < 70: return '------●---'
-        elif progress < 80: return '-------●--'
-        elif progress < 90: return '--------●-'
-        elif progress < 100: return '--------●'
+        if progress <= 10:   return '●---------'
+        elif progress <= 20: return '-●--------'
+        elif progress <= 30: return '--●-------'
+        elif progress <= 40: return '---●------'
+        elif progress <= 50: return '----●-----'
+        elif progress <= 60: return '-----●----'
+        elif progress <= 70: return '------●---'
+        elif progress <= 80: return '-------●--'
+        elif progress <= 90: return '--------●-'
+        elif progress <= 100: return '--------●'
 
-
-    def convert(self, sec):
+    def _convert(self, sec):
         if sec < 60:
             return f"0:{str(datetime.timedelta(seconds = int(sec))).lstrip('0:')}"
         else:
             return str(datetime.timedelta(seconds = int(sec))).lstrip('0:')
 
+    def _shuffle(self):
+        random.shuffle(self.player.queue._queue)
+
+
+# Wavelink initiate
     async def teardown(self):
         try:
             await self.player.destroy()
@@ -178,6 +181,9 @@ class Music(commands.Cog, wavelink.Player):
             self.player: wavelink.Player = await ctx.author.voice.channel.connect(cls=wavelink.Player)
         else:
             self.player: wavelink.Player = ctx.voice_client
+
+        global player
+        player = self.player
 
         if not self.player.is_connected:
             await self.player.connect(ctx)
@@ -198,7 +204,7 @@ class Music(commands.Cog, wavelink.Player):
         await self.start_playback()
 
 
-# Adding music to queue
+# Adding music to queue and playing track
     async def add_youtubepl(self, ctx, query):
         tracks = await wavelink.YouTubePlaylist.search(query=query)
 
@@ -211,7 +217,7 @@ class Music(commands.Cog, wavelink.Player):
             url=query,
             colour=template["__colour"],
         )
-        embed.set_thumbnail(url=self.__thumbnail(tracks.tracks[0].identifier))
+        embed.set_thumbnail(url=self._thumbnail(tracks.tracks[0].identifier))
         embed.set_footer(text=f"Invoked by {ctx.author.display_name}", icon_url=ctx.author.display_avatar)
         await ctx.send(embed=embed)
         await ctx.message.delete()
@@ -226,7 +232,7 @@ class Music(commands.Cog, wavelink.Player):
             url=track.uri,
             colour=template["__colour"],
         )
-        embed.set_thumbnail(url=self.__thumbnail(track.identifier))
+        embed.set_thumbnail(url=self._thumbnail(track.identifier))
         embed.set_footer(text=f"Invoked by {ctx.author.display_name}", icon_url=ctx.author.display_avatar)
         await ctx.send(embed=embed)
         await ctx.message.delete()
@@ -245,7 +251,7 @@ class Music(commands.Cog, wavelink.Player):
             title="",
             description=(
                 "\n".join(
-                    f"`{i+1}.` [{t.title}]({t.uri}) | `{self.convert(t.length)}`"
+                    f"`{i+1}.` [{t.title}]({t.uri}) | `{self._convert(t.length)}`"
                     for i, t in enumerate(tracks[:5])
                 )
             ),
@@ -273,12 +279,17 @@ class Music(commands.Cog, wavelink.Player):
             url=track.uri,
             colour=template["__colour"],
         )
-        embed.set_thumbnail(url=self.__thumbnail(track.identifier))
+        embed.set_thumbnail(url=self._thumbnail(track.identifier))
         embed.set_footer(text=f"Invoked by {ctx.author.display_name}", icon_url=ctx.author.display_avatar)
         await ctx.send(embed=embed)
         await ctx.message.delete()
 
     async def start_playback(self):
+        if loop == loopMode.ALL:
+            self.player.queue.put(self.current_track)
+        elif loop == loopMode.ONE:
+            self.player.queue.put_at_front(self.current_track)
+
         if not self.player.queue.is_empty:
             self.current_track = self.player.queue.get()
             await self.player.play(self.current_track)
@@ -289,6 +300,10 @@ class Music(commands.Cog, wavelink.Player):
     async def shutdown_command(self, ctx):
         await self.player.disconnect()
 
+    @shutdown_command.error
+    async def shutdown_command_error(self, ctx, exc):
+        await ctx.send("error")
+
     @commands.command(name='control', aliases=['ctrl', 'np'])
     async def control_command(self, ctx):
         view = Control()
@@ -296,17 +311,30 @@ class Music(commands.Cog, wavelink.Player):
         embed = discord.Embed(
             description=f"**Now playing:**\n"
                         f"[{current.title}]({current.uri})\n"
-                        f"`{self.convert(self.player.position)} |{self.progress(self.player.position, current.duration)}| {self.convert(current.duration)}`",
+                        f"`{self._convert(self.player.position)} |{self._progress(self.player.position, current.duration)}| {self._convert(current.duration)}`",
             colour=template["__colour"]
         )
-        embed.set_thumbnail(url=self.__thumbnail(current.identifier))
-        embed.set_footer(text=f"{self.loop}{self.shuffle}", icon_url=ctx.author.display_avatar)
+        embed.set_thumbnail(url=self._thumbnail(current.identifier))
+        embed.set_footer(text=f"{loop}", icon_url=ctx.author.display_avatar)
 
         global temp
         temp = ctx
         if self.ctrl is not None:
             await self.ctrl.delete()
         self.ctrl = await ctx.send(embed=embed, view=view)
+
+    @control_command.error
+    async def control_command_error(self, ctx, exc):
+        await ctx.send("error")
+
+    @commands.command(name='skip', aliases=['next'])
+    async def skip_command(self, ctx):
+        await self.player.stop()
+        await ctx.send("Song skipped")
+
+    @skip_command.error
+    async def skip_command_error(self, ctx, exc):
+        await ctx.send("error")
 
     @commands.command(name='play', aliases=['p'])
     async def play_command(self, ctx, *, query: str):
@@ -324,11 +352,6 @@ class Music(commands.Cog, wavelink.Player):
         if not self.player.is_playing() and not self.player.queue.is_empty:
             await self.start_playback()
 
-    @commands.command(name='skip', aliases=['next'])
-    async def skip_command(self, ctx):
-        await self.player.stop()
-        await ctx.send("Song skipped")
-
     @play_command.error
     async def play_command_error(self, ctx, exc):
         await ctx.send("error")
@@ -342,15 +365,15 @@ class Music(commands.Cog, wavelink.Player):
 
         i= 0
         for track in upcoming:
-            song_list = song_list + f"{i + 1}. [{track.title}]({track.uri}) | `{self.convert(track.length)}`\n\n"
+            song_list = song_list + f"{i + 1}. [{track.title}]({track.uri}) | `{self._convert(track.length)}`\n\n"
             i = i + 1
             if i % 10 == 0:
                 embed = discord.Embed(
                     description=(f"**Now playing:**"
-                                f"\n[{current.title}]({current.uri}) | `{self.convert(current.length)}`\n\n"
+                                f"\n[{current.title}]({current.uri}) | `{self._convert(current.length)}`\n\n"
                                 f"**Up next:**\n{song_list}"),
                     colour=template["__colour"])
-                embed.set_thumbnail(url=self.__thumbnail(current.identifier))
+                embed.set_thumbnail(url=self._thumbnail(current.identifier))
                 embed.set_footer(text=f"Invoked by {ctx.author.display_name}", icon_url=ctx.author.display_avatar)
                 queue_page.append(embed)
                 song_list = ''
@@ -358,10 +381,10 @@ class Music(commands.Cog, wavelink.Player):
         if i % 10 != 0 or i == 0:
             embed = discord.Embed(
                 description=(f"**Now playing:**"
-                            f"\n[{current.title}]({current.uri}) | `{self.convert(current.length)}`\n\n"
+                            f"\n[{current.title}]({current.uri}) | `{self._convert(current.length)}`\n\n"
                             f"**Up next:**\n{song_list}"),
                 colour=template["__colour"])
-            embed.set_thumbnail(url=self.__thumbnail(current.identifier))
+            embed.set_thumbnail(url=self._thumbnail(current.identifier))
             embed.set_footer(text=f"Invoked by {ctx.author.display_name}", icon_url=ctx.author.display_avatar)
             queue_page.append(embed)
 
@@ -392,7 +415,7 @@ class Music(commands.Cog, wavelink.Player):
 
         i= 0
         for track in history:
-            song_list = song_list + f"{i + 1}. [{track.title}]({track.uri}) | `{self.convert(track.length)}`\n\n"
+            song_list = song_list + f"{i + 1}. [{track.title}]({track.uri}) | `{self._convert(track.length)}`\n\n"
             i = i + 1
             if i % 10 == 0:
                 embed = discord.Embed(
@@ -423,6 +446,12 @@ class Music(commands.Cog, wavelink.Player):
         )
         await paginator.send(ctx)
 
+    @queue_command.error
+    async def queue_command_error(self, ctx, exc):
+        if isinstance(exc, QueueIsEmpty):
+            await ctx.send("The queue is currently empty.")
 
+
+# Adding to cogs
 def setup(bot):
     bot.add_cog(Music(bot))

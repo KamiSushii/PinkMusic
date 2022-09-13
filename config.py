@@ -16,6 +16,8 @@ template = {
     '__colour':discord.Colour.nitro_pink(),
 }
 
+debug_guilds = ["998467063972626513", "513511763334135809"]
+
 nodes = {
             "node1": {
                 "host": "node1.gglvxd.tk",
