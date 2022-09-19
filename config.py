@@ -3,7 +3,7 @@ import discord
 #Config file
 YOUTUBE_REGEX = r"^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$"
 YOUTUBEPL_REGEX = r"(?:https?:\/\/)?(?:youtu\.be\/|(?:www\.|m\.)?youtube\.com\/(?:playlist|list|embed)(?:\.php)?(?:\?.*list=|\/))([a-zA-Z0-9\-_]+)"
-TOKEN = 'MTAxOTE1NDQyNDc5MjM3MTIxMg.GN69eo.fQzsS5mt8QGNk8AKfLdvplafWR8p9GnuEYauNY'
+TOKEN = ''
 OPTIONS = {
     "1️⃣": 0,
     "2️⃣": 1,
